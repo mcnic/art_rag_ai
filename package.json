@@ -9,7 +9,8 @@
     "save-chunks": "node -e \"require('./scripts/load_and_process').loadAndProcessDocuments().then(chunks => require('fs').writeFileSync('chunks.json', JSON.stringify(chunks, null, 2)))\"",
     "embed": "node scripts/embed_and_store.js embed",
     "search": "node scripts/embed_and_store.js search",
-    "test-pinecone": "node scripts/test_pinecone.js"
+    "test-pinecone": "node scripts/test_pinecone.js",
+    "test-openai": "node scripts/test_openai.js"
   },
   "author": "mcnic",
   "license": "ISC",
