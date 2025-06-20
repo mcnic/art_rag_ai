@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "download-collection": "git clone https://github.com/artsmia/collection.git || echo 'collection already exists'",
+    "process": "node scripts/load_and_process.js",
+    "save-chunks": "node -e \"require('./scripts/load_and_process').loadAndProcessDocuments().then(chunks => require('fs').writeFileSync('chunks.json', JSON.stringify(chunks, null, 2)))\"",
+    "embed": "node scripts/embed_and_store.js embed",
+    "search": "node scripts/embed_and_store.js search"
   },
   "author": "mcnic",
   "license": "ISC",
@@ -23,6 +28,7 @@
     "jest": "^30.0.2",
     "langchain": "^0.3.29",
     "openai": "^5.5.1",
-    "redis": "^5.5.6"
+    "redis": "^5.5.6",
+    "@pinecone-database/pinecone": "^2.0.0"
   }
 }
