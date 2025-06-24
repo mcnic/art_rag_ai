@@ -7,6 +7,29 @@ const fetch = require('node-fetch');
 const PINECONE_API_KEY = process.env.PINECONE_API_KEY;
 const PINECONE_INDEX = process.env.PINECONE_INDEX;
 
+// Функция для очистки метаданных (Pinecone принимает только строки, числа, булевы значения)
+function cleanMetadata(metadata) {
+  const cleaned = {};
+  for (const [key, value] of Object.entries(metadata)) {
+    if (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    ) {
+      cleaned[key] = value;
+    } else if (
+      Array.isArray(value) &&
+      value.every((item) => typeof item === 'string')
+    ) {
+      cleaned[key] = value;
+    } else if (value !== null && value !== undefined) {
+      // Преобразуем сложные объекты в строки
+      cleaned[key] = JSON.stringify(value);
+    }
+  }
+  return cleaned;
+}
+
 // Функция для получения эмбеддинга через Ollama
 async function getEmbedding(text) {
   const response = await fetch('http://localhost:11434/api/embeddings', {
@@ -54,7 +77,7 @@ async function embedAndStore() {
     const vectors = batch.map((doc, idx) => ({
       id: `${doc.metadata.id || doc.metadata.source}_${i + idx}`,
       values: embeddings[idx],
-      metadata: doc.metadata,
+      metadata: cleanMetadata(doc.metadata),
     }));
     await index.upsert(vectors);
     console.log(`Upserted ${i + batch.length} / ${chunks.length}`);
