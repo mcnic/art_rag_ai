@@ -10,7 +10,8 @@
     "embed": "node scripts/embed_and_store.js embed",
     "search": "node scripts/embed_and_store.js search",
     "test-pinecone": "node scripts/test_pinecone.js",
-    "test-openai": "node scripts/test_openai.js"
+    "test-openai": "node scripts/test_openai.js",
+    "test-ollama": "node scripts/test_ollama.js"
   },
   "author": "mcnic",
   "license": "ISC",
@@ -29,6 +30,7 @@
     "glob": "^7.2.0",
     "jest": "^30.0.2",
     "langchain": "^0.3.29",
+    "node-fetch": "^2.7.0",
     "openai": "^5.5.1",
     "redis": "^5.5.6"
   }

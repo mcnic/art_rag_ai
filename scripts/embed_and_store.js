@@ -1,30 +1,47 @@
 require('dotenv').config();
-const { OpenAIEmbeddings } = require('langchain/embeddings/openai');
 const { Pinecone } = require('@pinecone-database/pinecone');
 const fs = require('fs/promises');
 const path = require('path');
+const fetch = require('node-fetch');
 
 const PINECONE_API_KEY = process.env.PINECONE_API_KEY;
-const PINECONE_ENVIRONMENT = process.env.PINECONE_ENVIRONMENT;
 const PINECONE_INDEX = process.env.PINECONE_INDEX;
+
+// Функция для получения эмбеддинга через Ollama
+async function getEmbedding(text) {
+  const response = await fetch('http://localhost:11434/api/embeddings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'nomic-embed-text',
+      prompt: text,
+    }),
+  });
+  const data = await response.json();
+  return data.embedding;
+}
+
+// Функция для получения эмбеддингов для массива текстов
+async function getEmbeddings(texts) {
+  const embeddings = [];
+  for (const text of texts) {
+    const embedding = await getEmbedding(text);
+    embeddings.push(embedding);
+  }
+  return embeddings;
+}
 
 async function loadChunks() {
   // Для простоты сохраняем чанки в файл, например, chunks.json
-  const filePath = path.join(__dirname, 'chunks.json');
+  const filePath = path.join(__dirname, '..', 'chunks.json');
   const data = await fs.readFile(filePath, 'utf-8');
   return JSON.parse(data);
 }
 
 async function embedAndStore() {
   const chunks = await loadChunks();
-  const openai = new OpenAIEmbeddings({
-    openAIApiKey: process.env.OPENAI_API_KEY,
-    modelName: 'text-embedding-ada-002',
-  });
-
   const pinecone = new Pinecone({
     apiKey: PINECONE_API_KEY,
-    environment: PINECONE_ENVIRONMENT,
   });
   const index = pinecone.Index(PINECONE_INDEX);
 
@@ -33,7 +50,7 @@ async function embedAndStore() {
   for (let i = 0; i < chunks.length; i += batchSize) {
     const batch = chunks.slice(i, i + batchSize);
     const texts = batch.map((doc) => doc.pageContent);
-    const embeddings = await openai.embedDocuments(texts);
+    const embeddings = await getEmbeddings(texts);
     const vectors = batch.map((doc, idx) => ({
       id: `${doc.metadata.id || doc.metadata.source}_${i + idx}`,
       values: embeddings[idx],
@@ -46,16 +63,11 @@ async function embedAndStore() {
 }
 
 async function searchPinecone(query, topK = 5) {
-  const openai = new OpenAIEmbeddings({
-    openAIApiKey: process.env.OPENAI_API_KEY,
-    modelName: 'text-embedding-ada-002',
-  });
   const pinecone = new Pinecone({
     apiKey: PINECONE_API_KEY,
-    environment: PINECONE_ENVIRONMENT,
   });
   const index = pinecone.Index(PINECONE_INDEX);
-  const embedding = await openai.embedQuery(query);
+  const embedding = await getEmbedding(query);
   const results = await index.query({
     vector: embedding,
     topK,
