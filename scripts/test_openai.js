@@ -7,19 +7,19 @@ async function testOpenAI() {
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    // Пробуем получить embedding для простого текста
+    // Try to get embedding for simple text
     const response = await openai.embeddings.create({
       model: 'text-embedding-ada-002',
       input: 'Hello, OpenAI!',
     });
 
     console.log(
-      'OpenAI API работает! Пример embedding:',
+      'OpenAI API is working! Example embedding:',
       response.data[0].embedding.slice(0, 5),
       '...'
     );
   } catch (err) {
-    console.error('Ошибка подключения к OpenAI API:', err.message || err);
+    console.error('Error connecting to OpenAI API:', err.message || err);
   }
 }
 

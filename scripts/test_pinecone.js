@@ -7,17 +7,14 @@ async function testPinecone() {
       apiKey: process.env.PINECONE_API_KEY,
     });
 
-    // Пробуем получить объект индекса
+    // Try to get index object
     const index = pinecone.index(process.env.PINECONE_INDEX);
-    // Попробуем получить stats или описание индекса
+    // Try to get stats or index description
     const stats = await index.describeIndexStats();
-    console.log(`Индекс ${process.env.PINECONE_INDEX} доступен!`);
-    console.log('Статистика индекса:', stats);
+    console.log(`Index ${process.env.PINECONE_INDEX} is available!`);
+    console.log('Index statistics:', stats);
   } catch (err) {
-    console.error(
-      'Ошибка подключения к Pinecone или индекса не существует:',
-      err
-    );
+    console.error('Error connecting to Pinecone or index does not exist:', err);
   }
 }
 

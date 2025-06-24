@@ -1,72 +1,77 @@
 # Art RAG AI
 
-RAG (Retrieval-Augmented Generation) система для работы с коллекцией произведений искусства Minneapolis Institute of Art.
+RAG (Retrieval-Augmented Generation) system for working with the Minneapolis Institute of Art collection.
 
-## Описание
+## Description
 
-Система позволяет:
+The system allows you to:
 
-- Загружать и обрабатывать данные из коллекции произведений искусства
-- Создавать векторные представления (эмбеддинги) с помощью локальной LLM
-- Сохранять эмбеддинги в векторной базе данных Pinecone
-- Выполнять семантический поиск по коллекции
-- Генерировать ответы на вопросы на основе найденных документов
+- Load and process data from the art collection
+- Create vector representations (embeddings) using local LLM
+- Store embeddings in Pinecone vector database
+- Perform semantic search across the collection
+- Generate answers to questions based on found documents
 
-## Установка
+## Installation
 
-### 1. Клонирование репозитория
+### 1. Clone the repository
 
 ```bash
 git clone <your-repo-url>
 cd art_rag_ai
 ```
 
-### 2. Установка зависимостей
+### 2. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Установка Ollama
+### 3. Install Ollama
 
 #### Linux
 
-**Автоматическая установка:**
+**Automatic installation:**
+
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
 ```
 
-**Ручная установка (Ubuntu/Debian):**
+**Manual installation (Ubuntu/Debian):**
+
 ```bash
-# Добавить репозиторий
+# Add repository
 curl -fsSL https://ollama.com/install.sh | sh
 
-# Или через apt
+# Or via apt
 sudo apt update
 sudo apt install ollama
 ```
 
 **Arch Linux:**
+
 ```bash
 yay -S ollama-bin
 ```
 
 #### macOS
 
-**Через Homebrew:**
+**Via Homebrew:**
+
 ```bash
 brew install ollama
 ```
 
-**Через установщик:**
-1. Скачайте установщик с [https://ollama.com/download](https://ollama.com/download)
-2. Откройте скачанный файл и следуйте инструкциям
+**Via installer:**
+
+1. Download the installer from [https://ollama.com/download](https://ollama.com/download)
+2. Open the downloaded file and follow the instructions
 
 #### Windows
 
-1. Скачайте установщик с [https://ollama.com/download](https://ollama.com/download)
-2. Запустите установщик и следуйте инструкциям
-3. После установки перезагрузите компьютер
+1. Download the installer from [https://ollama.com/download](https://ollama.com/download)
+2. Run the installer and follow the instructions
+3. Restart your computer after installation
 
 #### Docker
 
@@ -74,293 +79,307 @@ brew install ollama
 docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
 ```
 
-### 4. Запуск Ollama
+### 4. Start Ollama
 
-#### Первый запуск
+#### First run
 
 ```bash
-# Запуск сервиса
+# Start the service
 ollama serve
 ```
 
-**Примечание:** В первый раз Ollama может запросить разрешения на доступ к сети.
+**Note:** On first run, Ollama may request network access permissions.
 
-#### Автозапуск (Linux/macOS)
+#### Auto-start (Linux/macOS)
 
 ```bash
-# Включить автозапуск
+# Enable auto-start
 sudo systemctl enable ollama
 
-# Запустить сервис
+# Start the service
 sudo systemctl start ollama
 
-# Проверить статус
+# Check status
 sudo systemctl status ollama
 ```
 
-#### Проверка работы Ollama
+#### Verify Ollama is working
 
 ```bash
-# Проверить версию
+# Check version
 ollama --version
 
-# Проверить статус сервиса
+# Check service status
 curl http://localhost:11434/api/tags
 ```
 
-### 5. Управление моделями
+### 5. Model Management
 
-#### Список доступных моделей
+#### List available models
 
 ```bash
-# Показать все доступные модели
+# Show all available models
 ollama list
 
-# Показать модели в реестре
+# Show models in registry
 ollama list --remote
 ```
 
-#### Загрузка модели nomic-embed-text
+#### Download nomic-embed-text model
 
 ```bash
-# Загрузка модели для эмбеддингов
+# Download model for embeddings
 ollama pull nomic-embed-text
 
-# Проверка загрузки
+# Verify download
 ollama list
 ```
 
-#### Другие полезные модели
+#### Other useful models
 
 ```bash
-# Модели для генерации текста
+# Text generation models
 ollama pull llama3
 ollama pull mistral
 ollama pull phi3
 
-# Альтернативные модели для эмбеддингов
+# Alternative embedding models
 ollama pull llama2-embed
 ollama pull all-minilm
 ```
 
-#### Управление моделями
+#### Model management
 
 ```bash
-# Удалить модель
+# Remove model
 ollama rm nomic-embed-text
 
-# Перезагрузить модель
+# Reload model
 ollama pull nomic-embed-text
 
-# Показать информацию о модели
+# Show model information
 ollama show nomic-embed-text
 ```
 
-### 6. Настройка переменных окружения
+### 6. Environment variables
 
-Создайте файл `.env` в корне проекта:
+Create a `.env` file in the project root:
 
 ```env
 PINECONE_API_KEY=your_pinecone_api_key
 PINECONE_INDEX=your_pinecone_index_name
 ```
 
-## Настройка Pinecone
+## Pinecone Setup
 
-1. Создайте аккаунт на [https://www.pinecone.io/](https://www.pinecone.io/)
-2. Создайте новый индекс:
-   - **Name:** любое уникальное имя (например, `art-collection`)
-   - **Dimension:** 768 (для nomic-embed-text)
+1. Create an account at [https://www.pinecone.io/](https://www.pinecone.io/)
+2. Create a new index:
+
+   - **Name:** any unique name (e.g., `art-collection`)
+   - **Dimension:** 768 (for nomic-embed-text)
    - **Metric:** cosine
-   - **Pod Type:** starter (для бесплатного тарифа)
-3. Скопируйте API Key и имя индекса в файл `.env`
+   - **Pod Type:** starter (for free tier)
 
-## Тестирование
+3. Copy the API Key and index name to your `.env` file
 
-### Проверка подключения к Ollama
+## Testing
+
+### Test Ollama connection
 
 ```bash
 npm run test-ollama
 ```
 
-Ожидаемый результат:
-```
-Ollama работает! Пример embedding: [0.123, -0.456, 0.789, -0.321, 0.654] ...
+Expected output:
+
+```text
+Ollama is working! Example embedding: [0.123, -0.456, 0.789, -0.321, 0.654] ...
 ```
 
-### Проверка подключения к Pinecone
+### Test Pinecone connection
 
 ```bash
 npm run test-pinecone
 ```
 
-Ожидаемый результат:
-```
-Индекс your_index_name доступен!
-Статистика индекса: { ... }
+Expected output:
+
+```text
+Index your_index_name is available!
+Index statistics: { ... }
 ```
 
-## Использование
+## Usage
 
-### 1. Загрузка и обработка данных
+### 1. Load and process data
 
 ```bash
-# Скачивание коллекции и обработка документов
+# Download collection and process documents
 npm run save-chunks
 ```
 
-Эта команда:
-- Скачивает репозиторий с коллекцией произведений искусства
-- Обрабатывает JSON файлы и извлекает текстовые данные
-- Разбивает документы на чанки размером 750 символов с перекрытием 75 символов
-- Сохраняет чанки в файл `chunks.json`
+This command:
 
-### 2. Создание эмбеддингов и загрузка в Pinecone
+- Downloads the art collection repository
+- Processes JSON files and extracts text data
+- Splits documents into chunks of 750 characters with 75 character overlap
+- Saves chunks to `chunks.json` file
+
+### 2. Create embeddings and load to Pinecone
 
 ```bash
 npm run embed
 ```
 
-Эта команда:
-- Загружает чанки из файла `chunks.json`
-- Получает эмбеддинги через Ollama API (модель nomic-embed-text)
-- Загружает эмбеддинги в Pinecone батчами по 100 штук
+This command:
 
-### 3. Поиск по коллекции
+- Loads chunks from `chunks.json` file
+- Gets embeddings via Ollama API (nomic-embed-text model)
+- Loads embeddings to Pinecone in batches of 100
+
+### 3. Search the collection
 
 ```bash
-npm run search -- "ваш поисковый запрос"
+npm run search -- "your search query"
 ```
 
-Примеры запросов:
+Example queries:
+
 ```bash
-npm run search -- "картины Рембрандта"
-npm run search -- "скульптуры Древней Греции"
-npm run search -- "импрессионизм"
+npm run search -- "Rembrandt paintings"
+npm run search -- "Ancient Greek sculptures"
+npm run search -- "impressionism"
 ```
 
-## Структура проекта
+## Project Structure
 
-```
+```text
 art_rag_ai/
 ├── scripts/
-│   ├── load_and_process.js      # Обработка документов
-│   ├── embed_and_store.js       # Создание эмбеддингов и работа с Pinecone
-│   ├── test_ollama.js          # Тест Ollama
-│   ├── test_pinecone.js        # Тест Pinecone
-│   └── test_openai.js          # Тест OpenAI (если понадобится)
-├── collection/                  # Данные коллекции (скачиваются автоматически)
-├── chunks.json                 # Обработанные чанки документов
+│   ├── load_and_process.js      # Document processing
+│   ├── embed_and_store.js       # Embedding creation and Pinecone work
+│   ├── test_ollama.js          # Ollama test
+│   ├── test_pinecone.js        # Pinecone test
+│   └── test_openai.js          # OpenAI test (if needed)
+├── collection/                  # Collection data (downloaded automatically)
+├── chunks.json                 # Processed document chunks
 ├── package.json
 └── README.md
 ```
 
-## Команды npm
+## NPM Commands
 
-| Команда | Описание |
-|---------|----------|
-| `npm run download-collection` | Скачивание коллекции |
-| `npm run process` | Обработка документов (вывод в консоль) |
-| `npm run save-chunks` | Обработка и сохранение чанков в файл |
-| `npm run embed` | Создание эмбеддингов и загрузка в Pinecone |
-| `npm run search` | Поиск по коллекции |
-| `npm run test-ollama` | Тест подключения к Ollama |
-| `npm run test-pinecone` | Тест подключения к Pinecone |
-| `npm run test-openai` | Тест подключения к OpenAI |
+| Command | Description |
+|---------|-------------|
+| `npm run download-collection` | Download collection |
+| `npm run process` | Process documents (console output) |
+| `npm run save-chunks` | Process and save chunks to file |
+| `npm run embed` | Create embeddings and load to Pinecone |
+| `npm run search` | Search the collection |
+| `npm run test-ollama` | Test Ollama connection |
+| `npm run test-pinecone` | Test Pinecone connection |
+| `npm run test-openai` | Test OpenAI connection |
 
-## Требования
+## Requirements
 
 - Node.js 16+
-- Ollama с моделью nomic-embed-text
-- Аккаунт Pinecone
-- Минимум 4 ГБ RAM (для работы с nomic-embed-text)
-- 5+ ГБ свободного места на диске
+- Ollama with nomic-embed-text model
+- Pinecone account
+- Minimum 4 GB RAM (for nomic-embed-text)
+- 5+ GB free disk space
 
-## Устранение неполадок
+## Troubleshooting
 
-### Проблемы с Ollama
+### Ollama Issues
 
-#### Ollama не запускается
+#### Ollama won't start
+
 ```bash
-# Проверить статус сервиса
+# Check service status
 sudo systemctl status ollama
 
-# Перезапустить сервис
+# Restart service
 sudo systemctl restart ollama
 
-# Проверить логи
+# Check logs
 sudo journalctl -u ollama -f
 ```
 
-#### Ошибка "permission denied"
+#### "Permission denied" error
+
 ```bash
-# Добавить пользователя в группу ollama
+# Add user to ollama group
 sudo usermod -a -G ollama $USER
 
-# Перезагрузить систему или перелогиниться
+# Reboot system or re-login
 sudo reboot
 ```
 
-#### Ошибка "port already in use"
+#### "Port already in use" error
+
 ```bash
-# Найти процесс, использующий порт 11434
+# Find process using port 11434
 sudo lsof -i :11434
 
-# Остановить процесс
+# Stop the process
 sudo kill -9 <PID>
 ```
 
-#### Модель не загружается
+#### Model won't load
+
 ```bash
-# Проверить свободное место
+# Check free space
 df -h
 
-# Очистить кэш
+# Clear cache
 ollama rm nomic-embed-text
 ollama pull nomic-embed-text
 ```
 
-#### Ошибка "Cannot find module '@pinecone-database/pinecone'"
+#### "Cannot find module '@pinecone-database/pinecone'"
+
 ```bash
 npm install @pinecone-database/pinecone
 ```
 
-#### Ошибка "Cannot find module 'node-fetch'"
+#### "Cannot find module 'node-fetch'"
+
 ```bash
 npm install node-fetch
 ```
 
-#### Ошибка подключения к Ollama
-1. Убедитесь, что Ollama сервис запущен: `ollama serve`
-2. Проверьте, что модель загружена: `ollama list`
-3. При необходимости перезагрузите модель: `ollama pull nomic-embed-text`
-4. Проверьте доступность API: `curl http://localhost:11434/api/tags`
+#### Ollama connection error
 
-#### Ошибка подключения к Pinecone
-1. Проверьте правильность API Key в файле `.env`
-2. Убедитесь, что индекс существует и доступен
-3. Проверьте, что размерность индекса соответствует модели (768 для nomic-embed-text)
+1. Make sure Ollama service is running: `ollama serve`
+2. Check that model is loaded: `ollama list`
+3. Reload model if needed: `ollama pull nomic-embed-text`
+4. Check API availability: `curl http://localhost:11434/api/tags`
 
-### Полезные команды Ollama
+#### Pinecone connection error
+
+1. Check API Key correctness in `.env` file
+2. Make sure index exists and is accessible
+3. Verify index dimension matches model (768 for nomic-embed-text)
+
+### Useful Ollama Commands
 
 ```bash
-# Информация о системе
+# System information
 ollama info
 
-# Логи Ollama
+# Ollama logs
 ollama logs
 
-# Очистка неиспользуемых моделей
+# Clean unused models
 ollama prune
 
-# Экспорт модели
+# Export model
 ollama export nomic-embed-text > model.tar
 
-# Импорт модели
+# Import model
 ollama import model.tar
 ```
 
-## Лицензия
+## License
 
-MIT 
-MIT 
+MIT

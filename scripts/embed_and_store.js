@@ -7,7 +7,7 @@ const fetch = require('node-fetch');
 const PINECONE_API_KEY = process.env.PINECONE_API_KEY;
 const PINECONE_INDEX = process.env.PINECONE_INDEX;
 
-// Функция для очистки метаданных (Pinecone принимает только строки, числа, булевы значения)
+// Function to clean metadata (Pinecone accepts only strings, numbers, booleans)
 function cleanMetadata(metadata) {
   const cleaned = {};
   for (const [key, value] of Object.entries(metadata)) {
@@ -23,14 +23,14 @@ function cleanMetadata(metadata) {
     ) {
       cleaned[key] = value;
     } else if (value !== null && value !== undefined) {
-      // Преобразуем сложные объекты в строки
+      // Convert complex objects to strings
       cleaned[key] = JSON.stringify(value);
     }
   }
   return cleaned;
 }
 
-// Функция для получения эмбеддинга через Ollama
+// Function to get embedding via Ollama
 async function getEmbedding(text) {
   const response = await fetch('http://localhost:11434/api/embeddings', {
     method: 'POST',
@@ -44,7 +44,7 @@ async function getEmbedding(text) {
   return data.embedding;
 }
 
-// Функция для получения эмбеддингов для массива текстов
+// Function to get embeddings for array of texts
 async function getEmbeddings(texts) {
   const embeddings = [];
   for (const text of texts) {
@@ -55,7 +55,7 @@ async function getEmbeddings(texts) {
 }
 
 async function loadChunks() {
-  // Для простоты сохраняем чанки в файл, например, chunks.json
+  // For simplicity, save chunks to file, e.g., chunks.json
   const filePath = path.join(__dirname, '..', 'chunks.json');
   const data = await fs.readFile(filePath, 'utf-8');
   return JSON.parse(data);
@@ -68,7 +68,7 @@ async function embedAndStore() {
   });
   const index = pinecone.Index(PINECONE_INDEX);
 
-  // Batch upserts (Pinecone рекомендует до 100 за раз)
+  // Batch upserts (Pinecone recommends up to 100 at a time)
   const batchSize = 100;
   for (let i = 0; i < chunks.length; i += batchSize) {
     const batch = chunks.slice(i, i + batchSize);
@@ -99,8 +99,8 @@ async function searchPinecone(query, topK = 5) {
   return results.matches;
 }
 
-// Для запуска: node embed_and_store.js embed
-// или поиска: node embed_and_store.js search "ваш запрос"
+// For running: node embed_and_store.js embed
+// or search: node embed_and_store.js search "your query"
 if (require.main === module) {
   const [, , cmd, ...args] = process.argv;
   if (cmd === 'embed') {

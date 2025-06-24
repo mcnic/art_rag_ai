@@ -13,15 +13,15 @@ async function testOllama() {
     const data = await response.json();
     if (data.embedding) {
       console.log(
-        'Ollama работает! Пример embedding:',
+        'Ollama is working! Example embedding:',
         data.embedding.slice(0, 5),
         '...'
       );
     } else {
-      console.error('Ошибка: embedding не получен. Ответ:', data);
+      console.error('Error: embedding not received. Response:', data);
     }
   } catch (err) {
-    console.error('Ошибка подключения к Ollama:', err.message || err);
+    console.error('Error connecting to Ollama:', err.message || err);
   }
 }
 
