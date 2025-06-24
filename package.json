@@ -19,6 +19,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.54.0",
     "@huggingface/inference": "^4.0.6",
+    "@langchain/community": "^0.3.47",
     "@langchain/core": "^0.3.60",
     "@langchain/openai": "^0.5.14",
     "@pinecone-database/pinecone": "^6.1.1",
