@@ -364,20 +364,41 @@ npm install node-fetch
 ### Useful Ollama Commands
 
 ```bash
-# System information
-ollama info
+# Start Ollama service
+ollama serve
 
-# Ollama logs
-ollama logs
+# List available models
+ollama list
 
-# Clean unused models
-ollama prune
+# Show model information
+ollama show nomic-embed-text
 
-# Export model
-ollama export nomic-embed-text > model.tar
+# Run a model interactively
+ollama run phi3:mini
 
-# Import model
-ollama import model.tar
+# Stop a running model
+ollama stop phi3:mini
+
+# Pull a model from registry
+ollama pull phi3:mini
+
+# Push a model to registry
+ollama push my-model
+
+# Create a model from Modelfile
+ollama create my-model -f Modelfile
+
+# Copy a model
+ollama cp phi3:mini phi3:mini-copy
+
+# Remove a model
+ollama rm phi3:mini
+
+# List running models
+ollama ps
+
+# Show version
+ollama -v
 ```
 
 ## License
