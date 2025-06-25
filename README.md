@@ -268,18 +268,129 @@ npm run search -- "Ancient Greek sculptures"
 npm run search -- "impressionism"
 ```
 
+### 4. Test RAG Pipeline
+
+```bash
+# Test complete RAG system
+npm run test-rag
+```
+
+This will test:
+- LLM connection and answer generation
+- Document search functionality
+- Full RAG pipeline integration
+
+### 5. Start API Server
+
+```bash
+# Start the REST API server
+npm run api
+```
+
+The API server provides:
+- **Web Interface**: http://localhost:3000
+- **API Documentation**: http://localhost:3000/api-docs
+- **Health Check**: http://localhost:3000/health
+
+### 6. Use the Web Interface
+
+1. Start the API server: `npm run api`
+2. Open your browser to: http://localhost:3000
+3. Ask questions about the art collection
+4. Use filters to narrow down searches
+5. View sources and processing times
+
+## API Endpoints
+
+### POST /api/ask
+Ask a question and get an AI-generated answer with sources.
+
+**Request:**
+```json
+{
+  "question": "What Chinese artists are in the collection?",
+  "topK": 5,
+  "scoreThreshold": 0.6,
+  "filters": {
+    "medium": "Oil on canvas",
+    "period": "19th century"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "question": "What Chinese artists are in the collection?",
+  "answer": "Based on the provided context...",
+  "sources": [
+    {
+      "id": "96714_108192",
+      "title": "Artwork Title",
+      "artist": "China",
+      "accession_number": "2004.261.18.7",
+      "score": 0.785
+    }
+  ],
+  "metadata": {
+    "pipelineId": "pipeline_123",
+    "totalProcessingTime": 24222,
+    "searchTime": 5052,
+    "generationTime": 19169,
+    "documentsFound": 3,
+    "model": "gemma2:2b"
+  }
+}
+```
+
+### POST /api/search
+Search for documents without generating an answer.
+
+**Request:**
+```json
+{
+  "question": "landscape paintings",
+  "filters": {
+    "medium": "Oil on canvas"
+  }
+}
+```
+
+### GET /api/status
+Get system health and status information.
+
+### GET /health
+Simple health check endpoint.
+
+## Web Interface Features
+
+- **Real-time Chat**: Ask questions and get AI-generated answers
+- **Document Search**: Search with filters (artist, medium, period, country)
+- **Source Display**: View the documents used to generate answers
+- **Performance Metrics**: See processing times and model information
+- **System Status**: Monitor API, search index, and LLM status
+- **Responsive Design**: Works on desktop and mobile devices
+
 ## Project Structure
 
 ```text
 art_rag_ai/
+├── api/
+│   └── server.js              # REST API server
+├── public/
+│   └── index.html             # Web interface
 ├── scripts/
-│   ├── load_and_process.js      # Document processing
-│   ├── embed_and_store.js       # Embedding creation and Pinecone work
-│   ├── test_ollama.js          # Ollama test
-│   ├── test_pinecone.js        # Pinecone test
-│   └── test_openai.js          # OpenAI test (if needed)
-├── collection/                  # Collection data (downloaded automatically)
-├── chunks.json                 # Processed document chunks
+│   ├── load_and_process.js    # Document processing
+│   ├── embed_and_store.js     # Embedding creation and Pinecone work
+│   ├── search_documents.js    # Document search functionality
+│   ├── llm_integration.js     # LLM integration
+│   ├── rag_pipeline.js        # Complete RAG pipeline
+│   ├── test_llm.js           # LLM and RAG testing
+│   ├── test_ollama.js        # Ollama test
+│   ├── test_pinecone.js      # Pinecone test
+│   └── test_openai.js        # OpenAI test (if needed)
+├── collection/                # Collection data (downloaded automatically)
+├── chunks.json               # Processed document chunks
 ├── package.json
 └── README.md
 ```
@@ -294,6 +405,9 @@ art_rag_ai/
 | `npm run embed` | Create embeddings and load to Pinecone (all) |
 | `node scripts/embed_and_store.js embed 1000` | Create and upload only 1000 embeddings (for testing) |
 | `npm run search` | Search the collection |
+| `npm run test-rag` | Test complete RAG pipeline |
+| `npm run api` | Start REST API server |
+| `npm run dev` | Start API server (alias) |
 | `npm run test-ollama` | Test Ollama connection |
 | `npm run test-pinecone` | Test Pinecone connection |
 | `npm run test-openai` | Test OpenAI connection |

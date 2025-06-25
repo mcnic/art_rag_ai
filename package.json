@@ -14,7 +14,10 @@
     "test-pinecone": "node scripts/test_pinecone.js",
     "test-openai": "node scripts/test_openai.js",
     "test-ollama": "node scripts/test_ollama.js",
-    "search-test": "node scripts/search_documents.js"
+    "search-test": "node scripts/search_documents.js",
+    "test-rag": "node scripts/test_llm.js",
+    "api": "node api/server.js",
+    "dev": "node api/server.js"
   },
   "author": "mcnic",
   "license": "ISC",
@@ -30,13 +33,17 @@
     "chromadb": "^3.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
-    "express": "^5.1.0",
+    "express": "^4.18.2",
     "faiss-node": "^0.5.1",
     "glob": "^7.2.0",
+    "helmet": "^8.1.0",
     "jest": "^30.0.2",
     "langchain": "^0.3.29",
+    "morgan": "^1.10.0",
     "node-fetch": "^2.7.0",
     "openai": "^5.5.1",
-    "redis": "^5.5.6"
+    "redis": "^5.5.6",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   }
 }

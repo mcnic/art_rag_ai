@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test</title>
+</head>
+<body>
+    <h1>API Test</h1>
+    <button onclick="testHealth()">Test Health</button>
+    <button onclick="testStatus()">Test Status</button>
+    <button onclick="testAsk()">Test Ask</button>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        
+        function log(message) {
+            console.log(message);
+            document.getElementById('results').innerHTML += '<p>' + message + '</p>';
+        }
+        
+        async function testHealth() {
+            try {
+                log('Testing health endpoint...');
+                const response = await fetch('http://localhost:3000/health');
+                const data = await response.json();
+                log('Health response: ' + JSON.stringify(data));
+            } catch (error) {
+                log('Health error: ' + error.message);
+            }
+        }
+        
+        async function testStatus() {
+            try {
+                log('Testing status endpoint...');
+                const response = await fetch(`${API_BASE}/status`);
+                const data = await response.json();
+                log('Status response: ' + JSON.stringify(data));
+            } catch (error) {
+                log('Status error: ' + error.message);
+            }
+        }
+        
+        async function testAsk() {
+            try {
+                log('Testing ask endpoint...');
+                const response = await fetch(`${API_BASE}/ask`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: 'What Chinese artists are in the collection?',
+                        topK: 2
+                    }),
+                });
+                const data = await response.json();
+                log('Ask response: ' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                log('Ask error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html> 
