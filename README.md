@@ -166,17 +166,50 @@ ollama show nomic-embed-text
 Create a `.env` file in the project root:
 
 ```env
+# Required: Pinecone Configuration
 PINECONE_API_KEY=your_pinecone_api_key
 PINECONE_INDEX=your_pinecone_index_name
+
+# Required: LLM Configuration
 OLLAMA_MODEL=gemma2:2b
+
+# Optional: Cache Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+REDIS_DB=0
+CACHE_TTL=3600
+CACHE_PREFIX=art_rag:
+
+# Optional: Logging Configuration
+LOG_DIR=./logs
+LOG_MAX_SIZE=10485760
+LOG_RETENTION_DAYS=30
 ```
 
-**Available variables:**
+**Required variables:**
+
 - `PINECONE_API_KEY` - Your Pinecone API key
 - `PINECONE_INDEX` - Your Pinecone index name
 - `OLLAMA_MODEL` - Ollama model for text generation (default: gemma2:2b)
 
+**Optional cache variables:**
+
+- `REDIS_HOST` - Redis server host (default: localhost)
+- `REDIS_PORT` - Redis server port (default: 6379)
+- `REDIS_PASSWORD` - Redis password (if required)
+- `REDIS_DB` - Redis database number (default: 0)
+- `CACHE_TTL` - Cache time-to-live in seconds (default: 3600)
+- `CACHE_PREFIX` - Cache key prefix (default: art_rag:)
+
+**Optional logging variables:**
+
+- `LOG_DIR` - Log directory path (default: ./logs)
+- `LOG_MAX_SIZE` - Maximum log file size in bytes (default: 10MB)
+- `LOG_RETENTION_DAYS` - Log retention period in days (default: 30)
+
 **Available models for OLLAMA_MODEL:**
+
 - `gemma2:2b` - Small, fast model (recommended)
 - `llama3` - Larger, more capable model
 - `phi3:mini` - Very small, fast model
@@ -276,6 +309,7 @@ npm run test-rag
 ```
 
 This will test:
+
 - LLM connection and answer generation
 - Document search functionality
 - Full RAG pipeline integration
@@ -288,24 +322,29 @@ npm run api
 ```
 
 The API server provides:
-- **Web Interface**: http://localhost:3000
-- **API Documentation**: http://localhost:3000/api-docs
-- **Health Check**: http://localhost:3000/health
+
+- **Web Interface**: [http://localhost:3000](http://localhost:3000)
+- **API Documentation**: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
+- **Health Check**: [http://localhost:3000/health](http://localhost:3000/health)
 
 ### 6. Use the Web Interface
 
 1. Start the API server: `npm run api`
-2. Open your browser to: http://localhost:3000
+2. Open your browser to: [http://localhost:3000](http://localhost:3000)
 3. Ask questions about the art collection
 4. Use filters to narrow down searches
 5. View sources and processing times
 
 ## API Endpoints
 
-### POST /api/ask
+### Core RAG Endpoints
+
+#### POST /api/ask
+
 Ask a question and get an AI-generated answer with sources.
 
 **Request:**
+
 ```json
 {
   "question": "What Chinese artists are in the collection?",
@@ -319,6 +358,7 @@ Ask a question and get an AI-generated answer with sources.
 ```
 
 **Response:**
+
 ```json
 {
   "question": "What Chinese artists are in the collection?",
@@ -329,7 +369,8 @@ Ask a question and get an AI-generated answer with sources.
       "title": "Artwork Title",
       "artist": "China",
       "accession_number": "2004.261.18.7",
-      "score": 0.785
+      "score": 0.785,
+      "chunkIndex": 0
     }
   ],
   "metadata": {
@@ -337,30 +378,396 @@ Ask a question and get an AI-generated answer with sources.
     "totalProcessingTime": 24222,
     "searchTime": 5052,
     "generationTime": 19169,
+    "cacheTime": 15,
     "documentsFound": 3,
-    "model": "gemma2:2b"
+    "contextLength": 2048,
+    "model": "gemma2:2b",
+    "fromCache": false,
+    "timestamp": "2025-06-25T04:30:00.000Z"
   }
 }
 ```
 
-### POST /api/search
+**Parameters:**
+
+- `question` (required): The question to ask
+- `topK` (optional): Number of documents to retrieve (default: 5)
+- `scoreThreshold` (optional): Minimum similarity score (default: 0.6)
+- `filters` (optional): Search filters (artist, medium, period, country)
+
+#### POST /api/search
+
 Search for documents without generating an answer.
 
 **Request:**
+
 ```json
 {
   "question": "landscape paintings",
   "filters": {
-    "medium": "Oil on canvas"
+    "medium": "Oil on canvas",
+    "country": "France"
   }
 }
 ```
 
-### GET /api/status
-Get system health and status information.
+**Response:**
 
-### GET /health
+```json
+{
+  "documents": [
+    {
+      "id": "12345_67890",
+      "title": "Landscape with Trees",
+      "artist": "Claude Monet",
+      "accession_number": "2000.123.45",
+      "score": 0.892,
+      "metadata": {
+        "medium": "Oil on canvas",
+        "period": "19th century",
+        "country": "France"
+      }
+    }
+  ],
+  "totalFound": 15,
+  "processingTime": 1250
+}
+```
+
+### System Status Endpoints
+
+#### GET /api/status
+
+Get comprehensive system health and status information.
+
+**Response:**
+
+```json
+{
+  "status": "healthy",
+  "components": {
+    "search": "connected",
+    "llm": "connected",
+    "cache": "memory"
+  },
+  "index": {
+    "totalVectors": 15420,
+    "dimension": 768
+  },
+  "cache": {
+    "useRedis": false,
+    "redisStatus": "disabled",
+    "memoryCache": {
+      "size": 15,
+      "hits": 45,
+      "misses": 30,
+      "sets": 30,
+      "deletes": 0,
+      "hitRate": 0.6
+    },
+    "redis": {},
+    "ttl": 3600,
+    "prefix": "art_rag:"
+  },
+  "metrics": {
+    "totalRequests": 75,
+    "cacheHits": 45,
+    "cacheMisses": 30,
+    "averageProcessingTime": 3200,
+    "totalProcessingTime": 240000,
+    "errors": 2,
+    "cacheHitRate": 0.6,
+    "errorRate": 0.027
+  },
+  "configuration": {
+    "topK": 5,
+    "scoreThreshold": 0.6,
+    "maxContextLength": 4000,
+    "model": "gemma2:2b"
+  },
+  "timestamp": "2025-06-25T04:30:00.000Z"
+}
+```
+
+#### GET /health
+
 Simple health check endpoint.
+
+**Response:**
+
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-06-25T04:30:00.000Z",
+  "uptime": 3600
+}
+```
+
+### Metrics and Analytics Endpoints
+
+#### GET /api/metrics
+
+Get detailed system metrics and analytics.
+
+**Response:**
+
+```json
+{
+  "metrics": {
+    "totalRequests": 75,
+    "cacheHits": 45,
+    "cacheMisses": 30,
+    "averageProcessingTime": 3200,
+    "totalProcessingTime": 240000,
+    "errors": 2,
+    "questionsByHour": {
+      "14": 12,
+      "15": 18,
+      "16": 25,
+      "17": 20
+    },
+    "topQuestions": {
+      "what chinese artists are in the collection?": 8,
+      "tell me about impressionism": 6,
+      "show me renaissance paintings": 4
+    },
+    "documentRetrievalStats": {
+      "averageDocumentsFound": 3.2,
+      "averageScore": 0.78,
+      "totalDocumentsRetrieved": 240
+    },
+    "llmStats": {
+      "averageGenerationTime": 2100,
+      "totalGenerationTime": 157500,
+      "generations": 75
+    },
+    "cacheHitRate": 0.6,
+    "errorRate": 0.027
+  },
+  "topQuestions": [
+    {
+      "question": "what chinese artists are in the collection?",
+      "count": 8
+    },
+    {
+      "question": "tell me about impressionism",
+      "count": 6
+    }
+  ],
+  "hourlyDistribution": {
+    "14": 12,
+    "15": 18,
+    "16": 25,
+    "17": 20
+  },
+  "timestamp": "2025-06-25T04:30:00.000Z"
+}
+```
+
+#### GET /api/metrics/export
+
+Export metrics data to JSON file.
+
+**Parameters:**
+
+- `filename` (optional): Custom filename for export
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "filename": "metrics_export_20250625.json",
+  "data": {
+    "timestamp": "2025-06-25T04:30:00.000Z",
+    "metrics": { /* full metrics object */ },
+    "topQuestions": [ /* top questions array */ ],
+    "hourlyDistribution": { /* hourly data */ }
+  },
+  "timestamp": "2025-06-25T04:30:00.000Z"
+}
+```
+
+### Cache Management Endpoints
+
+#### GET /api/cache/stats
+
+Get detailed cache performance statistics.
+
+**Response:**
+
+```json
+{
+  "useRedis": false,
+  "redisStatus": "disabled",
+  "memoryCache": {
+    "size": 15,
+    "hits": 45,
+    "misses": 30,
+    "sets": 30,
+    "deletes": 0,
+    "hitRate": 0.6
+  },
+  "redis": {
+    "totalKeys": 0,
+    "memoryUsage": 0
+  },
+  "ttl": 3600,
+  "prefix": "art_rag:"
+}
+```
+
+#### POST /api/cache/clear
+
+Clear all cached responses.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Cache cleared successfully",
+  "timestamp": "2025-06-25T04:30:00.000Z"
+}
+```
+
+## Caching System
+
+The system implements intelligent caching to improve response times and reduce computational load.
+
+### Cache Features
+
+- **Multi-level Caching**: Redis (primary) with memory fallback
+- **Smart Key Generation**: SHA-256 hash based on question + parameters
+- **Configurable TTL**: Default 1 hour, customizable per request
+- **Automatic Fallback**: Falls back to memory cache if Redis unavailable
+- **Cache Statistics**: Hit rates, misses, and performance metrics
+
+### Cache Configuration
+
+**Environment Variables:**
+
+```env
+# Redis Configuration (optional)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+REDIS_DB=0
+
+# Cache Settings
+CACHE_TTL=3600
+CACHE_PREFIX=art_rag:
+```
+
+**Cache Behavior:**
+
+- Questions with identical parameters return cached responses
+- Different `topK`, `scoreThreshold`, or `filters` create separate cache entries
+- Cache keys include model name for model-specific caching
+- Automatic cache invalidation after TTL expiration
+
+### Cache Performance
+
+Typical performance improvements:
+
+- **First request**: 2-8 seconds (full processing)
+- **Cached request**: 10-50ms (cache retrieval)
+- **Speed improvement**: 95-99% faster for repeated questions
+
+## Metrics and Logging
+
+The system provides comprehensive metrics collection and logging for monitoring and optimization.
+
+### Metrics Collection
+
+**Performance Metrics:**
+
+- Total requests and processing times
+- Cache hit rates and performance
+- Document retrieval statistics
+- LLM generation times
+- Error rates and types
+
+**Usage Analytics:**
+
+- Most popular questions
+- Hourly activity patterns
+- User behavior trends
+- System utilization
+
+**Quality Metrics:**
+
+- Average document relevance scores
+- Context length optimization
+- Response quality indicators
+
+### Logging System
+
+**Log Files Location:** `./logs/`
+
+**Log Types:**
+
+- `rag_requests.log` - RAG pipeline requests and responses
+- `search_requests.log` - Document search operations
+- `errors.log` - System errors and exceptions
+- `system_metrics.log` - Periodic system performance snapshots
+
+**Log Format (JSON):**
+
+```json
+{
+  "timestamp": "2025-06-25T04:30:00.000Z",
+  "type": "rag_request",
+  "request": {
+    "question": "What is impressionism?",
+    "topK": 5,
+    "scoreThreshold": 0.6
+  },
+  "response": {
+    "answerLength": 450,
+    "sourcesCount": 3,
+    "averageScore": 0.78
+  },
+  "timing": {
+    "totalTime": 3200,
+    "searchTime": 800,
+    "generationTime": 2400,
+    "cacheTime": 15
+  },
+  "cache": {
+    "hit": false,
+    "key": "art_rag:abc123..."
+  },
+  "metadata": {
+    "pipelineId": "pipeline_123",
+    "model": "gemma2:2b",
+    "documentsFound": 3
+  }
+}
+```
+
+### Log Management
+
+**Automatic Features:**
+
+- Log rotation when files exceed 10MB
+- 30-day retention policy
+- Automatic log directory creation
+- Error handling for log write failures
+
+**Manual Operations:**
+
+```bash
+# Export metrics
+curl "http://localhost:3000/api/metrics/export?filename=my_metrics.json"
+
+# Clear old logs (automatic)
+# Logs older than 30 days are automatically removed
+
+# View log files
+tail -f logs/rag_requests.log
+tail -f logs/errors.log
+```
 
 ## Web Interface Features
 
@@ -369,7 +776,38 @@ Simple health check endpoint.
 - **Source Display**: View the documents used to generate answers
 - **Performance Metrics**: See processing times and model information
 - **System Status**: Monitor API, search index, and LLM status
+- **Cache Management**: View cache statistics and clear cache
+- **Analytics Dashboard**: Top questions, hourly activity, performance metrics
 - **Responsive Design**: Works on desktop and mobile devices
+
+### New Metrics Dashboard
+
+The web interface now includes a comprehensive metrics dashboard:
+
+**System Performance Card:**
+
+- Total requests and cache hit rate
+- Average processing times
+- Error rates and document retrieval stats
+
+**Cache Statistics Card:**
+
+- Cache type (Redis/Memory) and status
+- Hit/miss statistics and hit rate
+- Cache size and TTL information
+- Clear cache button
+
+**Top Questions Card:**
+
+- Most frequently asked questions
+- Question frequency counts
+- Real-time updates
+
+**Hourly Activity Card:**
+
+- 24-hour activity chart
+- Visual representation of usage patterns
+- Interactive bar chart
 
 ## Project Structure
 
@@ -385,10 +823,19 @@ art_rag_ai/
 │   ├── search_documents.js    # Document search functionality
 │   ├── llm_integration.js     # LLM integration
 │   ├── rag_pipeline.js        # Complete RAG pipeline
+│   ├── cache_manager.js       # Caching system (Redis + Memory)
+│   ├── metrics_logger.js      # Metrics collection and logging
 │   ├── test_llm.js           # LLM and RAG testing
 │   ├── test_ollama.js        # Ollama test
 │   ├── test_pinecone.js      # Pinecone test
-│   └── test_openai.js        # OpenAI test (if needed)
+│   ├── test_openai.js        # OpenAI test (if needed)
+│   ├── test_cache_metrics.js # Cache and metrics testing
+│   └── check_env.js          # Environment configuration check
+├── logs/                      # Log files (auto-generated)
+│   ├── rag_requests.log      # RAG request logs
+│   ├── search_requests.log   # Search request logs
+│   ├── errors.log            # Error logs
+│   └── system_metrics.log    # System performance logs
 ├── collection/                # Collection data (downloaded automatically)
 ├── chunks.json               # Processed document chunks
 ├── package.json
@@ -406,11 +853,13 @@ art_rag_ai/
 | `node scripts/embed_and_store.js embed 1000` | Create and upload only 1000 embeddings (for testing) |
 | `npm run search` | Search the collection |
 | `npm run test-rag` | Test complete RAG pipeline |
+| `npm run test-cache-metrics` | Test caching and metrics functionality |
 | `npm run api` | Start REST API server |
 | `npm run dev` | Start API server (alias) |
 | `npm run test-ollama` | Test Ollama connection |
 | `npm run test-pinecone` | Test Pinecone connection |
 | `npm run test-openai` | Test OpenAI connection |
+| `npm run check-env` | Check environment configuration |
 
 ## Requirements
 

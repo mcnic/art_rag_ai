@@ -1,5 +1,7 @@
 const { DocumentSearcher } = require('./search_documents');
 const { LLMIntegration } = require('./llm_integration');
+const { CacheManager } = require('./cache_manager');
+const { MetricsLogger } = require('./metrics_logger');
 require('dotenv').config();
 
 class RAGPipeline {
@@ -15,6 +17,19 @@ class RAGPipeline {
 
     // Logging
     this.enableLogging = options.enableLogging !== false;
+
+    // Caching
+    this.cache = new CacheManager({
+      useRedis: options.useRedis !== false,
+      ttl: options.cacheTtl || 3600, // 1 hour
+      prefix: options.cachePrefix || 'art_rag:',
+    });
+
+    // Metrics
+    this.metrics = new MetricsLogger({
+      enabled: options.enableMetrics !== false,
+      logDir: options.logDir || './logs',
+    });
   }
 
   /**
@@ -72,6 +87,43 @@ class RAGPipeline {
     this.log(`Starting RAG pipeline ${pipelineId} for question: "${question}"`);
 
     try {
+      // Check cache first
+      const cacheStartTime = Date.now();
+      const cachedResponse = await this.cache.get(question, options);
+      const cacheTime = Date.now() - cacheStartTime;
+
+      if (cachedResponse) {
+        this.log(`Cache hit! Returning cached response in ${cacheTime}ms`);
+
+        // Log cache hit
+        await this.metrics.logRAGRequest(
+          {
+            question,
+            ...options,
+            cacheKey: this.cache.generateKey(question, options),
+          },
+          cachedResponse,
+          {
+            totalProcessingTime: cacheTime,
+            searchTime: 0,
+            generationTime: 0,
+            cacheTime: cacheTime,
+          },
+          true
+        );
+
+        return {
+          ...cachedResponse,
+          metadata: {
+            ...cachedResponse.metadata,
+            fromCache: true,
+            cacheTime: cacheTime,
+          },
+        };
+      }
+
+      this.log(`Cache miss, processing question...`);
+
       // Step 1: Search for relevant documents
       this.log('Step 1: Searching for relevant documents...');
       const searchStartTime = Date.now();
@@ -130,7 +182,7 @@ class RAGPipeline {
       const totalTime = Date.now() - startTime;
       this.log(`RAG pipeline completed in ${totalTime}ms`);
 
-      return {
+      const response = {
         question,
         answer: llmResponse.answer,
         sources: documents.map((doc) => ({
@@ -153,13 +205,51 @@ class RAGPipeline {
           model: llmResponse.model,
           timestamp: llmResponse.timestamp,
           searchOptions,
+          fromCache: false,
         },
       };
+
+      // Cache the response
+      const cacheSetStartTime = Date.now();
+      await this.cache.set(question, options, response);
+      const cacheSetTime = Date.now() - cacheSetStartTime;
+      this.log(`Response cached in ${cacheSetTime}ms`);
+
+      // Log the request
+      await this.metrics.logRAGRequest(
+        {
+          question,
+          ...options,
+          cacheKey: this.cache.generateKey(question, options),
+        },
+        response,
+        {
+          totalProcessingTime: totalTime,
+          searchTime,
+          generationTime,
+          cacheTime: cacheTime + cacheSetTime,
+        },
+        false
+      );
+
+      return response;
     } catch (error) {
       const totalTime = Date.now() - startTime;
       this.log(
         `RAG pipeline failed after ${totalTime}ms: ${error.message}`,
         'error'
+      );
+
+      // Log error
+      await this.metrics.logError(
+        'RAG_PIPELINE',
+        error.message,
+        {
+          question,
+          pipelineId,
+          totalTime,
+        },
+        error
       );
 
       throw {
@@ -182,6 +272,15 @@ class RAGPipeline {
   ) {
     try {
       this.log('Testing complete RAG pipeline...');
+
+      // Test cache
+      this.log('Testing cache...');
+      const cacheTest = await this.cache.test();
+      if (cacheTest) {
+        this.log('Cache test passed');
+      } else {
+        this.log('Cache test failed', 'warn');
+      }
 
       // Test search component
       this.log('Testing search component...');
@@ -231,17 +330,22 @@ class RAGPipeline {
     try {
       const indexStats = await this.searcher.getIndexStats();
       const llmStatus = await this.llm.testConnection();
+      const cacheStats = await this.cache.getStats();
+      const metrics = this.metrics.getMetrics();
 
       return {
         status: 'healthy',
         components: {
           search: 'connected',
           llm: llmStatus ? 'connected' : 'disconnected',
+          cache: cacheStats.useRedis ? 'redis' : 'memory',
         },
         index: {
           totalVectors: indexStats.totalVectorCount,
           dimension: indexStats.dimension,
         },
+        cache: cacheStats,
+        metrics: metrics,
         configuration: {
           topK: this.topK,
           scoreThreshold: this.scoreThreshold,
@@ -257,6 +361,48 @@ class RAGPipeline {
         timestamp: new Date().toISOString(),
       };
     }
+  }
+
+  /**
+   * Get cache statistics
+   * @returns {Promise<Object>} Cache statistics
+   */
+  async getCacheStats() {
+    return await this.cache.getStats();
+  }
+
+  /**
+   * Get metrics
+   * @returns {Object} Current metrics
+   */
+  getMetrics() {
+    return this.metrics.getMetrics();
+  }
+
+  /**
+   * Get top questions
+   * @param {number} limit - Number of top questions
+   * @returns {Array} Top questions
+   */
+  getTopQuestions(limit = 10) {
+    return this.metrics.getTopQuestions(limit);
+  }
+
+  /**
+   * Clear cache
+   * @returns {Promise<boolean>} Success status
+   */
+  async clearCache() {
+    return await this.cache.clear();
+  }
+
+  /**
+   * Export metrics
+   * @param {string} filename - Export filename
+   * @returns {Promise<Object>} Export data
+   */
+  async exportMetrics(filename = null) {
+    return await this.metrics.exportMetrics(filename);
   }
 }
 

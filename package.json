@@ -16,8 +16,9 @@
     "test-ollama": "node scripts/test_ollama.js",
     "search-test": "node scripts/search_documents.js",
     "test-rag": "node scripts/test_llm.js",
-    "api": "node api/server.js",
-    "dev": "node api/server.js"
+    "test-cache-metrics": "node scripts/test_cache_metrics.js",
+    "check-env": "node scripts/check_env.js",
+    "start": "node api/server.js"
   },
   "author": "mcnic",
   "license": "ISC",
@@ -37,6 +38,7 @@
     "faiss-node": "^0.5.1",
     "glob": "^7.2.0",
     "helmet": "^8.1.0",
+    "ioredis": "^5.6.1",
     "jest": "^30.0.2",
     "langchain": "^0.3.29",
     "morgan": "^1.10.0",

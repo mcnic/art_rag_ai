@@ -383,6 +383,8 @@ app.post('/api/search', validateQuestionRequest, async (req, res) => {
  *                 status: { type: string }
  *                 components: { type: object }
  *                 index: { type: object }
+ *                 cache: { type: object }
+ *                 metrics: { type: object }
  *                 configuration: { type: object }
  *                 timestamp: { type: string }
  */
@@ -395,6 +397,168 @@ app.get('/api/status', async (req, res) => {
     res.status(500).json({
       error: 'STATUS_ERROR',
       message: error.message || 'Failed to get system status',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/metrics:
+ *   get:
+ *     summary: Get system metrics
+ *     description: Get detailed metrics about system usage and performance
+ *     tags: [Metrics]
+ *     responses:
+ *       200:
+ *         description: System metrics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 metrics: { type: object }
+ *                 topQuestions: { type: array }
+ *                 hourlyDistribution: { type: object }
+ *                 timestamp: { type: string }
+ */
+app.get('/api/metrics', async (req, res) => {
+  try {
+    const metrics = ragPipeline.getMetrics();
+    const topQuestions = ragPipeline.getTopQuestions(10);
+    const hourlyDistribution = ragPipeline.metrics.getHourlyDistribution();
+
+    res.json({
+      metrics,
+      topQuestions,
+      hourlyDistribution,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Metrics API error:', error);
+    res.status(500).json({
+      error: 'METRICS_ERROR',
+      message: error.message || 'Failed to get metrics',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/cache/stats:
+ *   get:
+ *     summary: Get cache statistics
+ *     description: Get detailed cache performance statistics
+ *     tags: [Cache]
+ *     responses:
+ *       200:
+ *         description: Cache statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 useRedis: { type: boolean }
+ *                 redisStatus: { type: string }
+ *                 memoryCache: { type: object }
+ *                 redis: { type: object }
+ *                 ttl: { type: number }
+ *                 prefix: { type: string }
+ */
+app.get('/api/cache/stats', async (req, res) => {
+  try {
+    const cacheStats = await ragPipeline.getCacheStats();
+    res.json(cacheStats);
+  } catch (error) {
+    console.error('Cache stats API error:', error);
+    res.status(500).json({
+      error: 'CACHE_STATS_ERROR',
+      message: error.message || 'Failed to get cache statistics',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/cache/clear:
+ *   post:
+ *     summary: Clear cache
+ *     description: Clear all cached responses
+ *     tags: [Cache]
+ *     responses:
+ *       200:
+ *         description: Cache cleared successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 message: { type: string }
+ *                 timestamp: { type: string }
+ */
+app.post('/api/cache/clear', async (req, res) => {
+  try {
+    const success = await ragPipeline.clearCache();
+    res.json({
+      success,
+      message: success ? 'Cache cleared successfully' : 'Failed to clear cache',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Cache clear API error:', error);
+    res.status(500).json({
+      error: 'CACHE_CLEAR_ERROR',
+      message: error.message || 'Failed to clear cache',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/metrics/export:
+ *   get:
+ *     summary: Export metrics
+ *     description: Export metrics data to JSON file
+ *     tags: [Metrics]
+ *     parameters:
+ *       - in: query
+ *         name: filename
+ *         schema:
+ *           type: string
+ *         description: Optional filename for export
+ *     responses:
+ *       200:
+ *         description: Metrics exported successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 filename: { type: string }
+ *                 data: { type: object }
+ *                 timestamp: { type: string }
+ */
+app.get('/api/metrics/export', async (req, res) => {
+  try {
+    const { filename } = req.query;
+    const exportData = await ragPipeline.exportMetrics(filename);
+
+    res.json({
+      success: true,
+      filename: filename || 'metrics_export.json',
+      data: exportData,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Metrics export API error:', error);
+    res.status(500).json({
+      error: 'METRICS_EXPORT_ERROR',
+      message: error.message || 'Failed to export metrics',
       timestamp: new Date().toISOString(),
     });
   }
