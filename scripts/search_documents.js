@@ -1,3 +1,10 @@
+// Search configuration constants
+const BASIC_SEARCH_QUERY = 'china artists';
+const FILTERED_SEARCH_QUERY = 'landscape painting';
+const FILTERED_SEARCH_FILTERS = {}; // example:{ medium: 'Oil on canvas' };
+const TOP_K = 3;
+const SCORE_THRESHOLD = 0.7;
+
 const { Pinecone } = require('@pinecone-database/pinecone');
 const { OllamaEmbeddings } = require('@langchain/community/embeddings/ollama');
 require('dotenv').config();
@@ -180,27 +187,54 @@ async function testSearch() {
 
     // Test basic search
     console.log('=== Basic Search Test ===');
-    const results = await searcher.searchDocuments('impressionist painting', 3);
+    const results = await searcher.searchDocuments(
+      BASIC_SEARCH_QUERY,
+      TOP_K,
+      SCORE_THRESHOLD
+    );
     results.forEach((doc, index) => {
       console.log(`${index + 1}. Score: ${doc.score.toFixed(3)}`);
-      console.log(`   Title: ${doc.title}`);
-      console.log(`   Artist: ${doc.artist}`);
-      console.log(`   Content: ${doc.content.substring(0, 150)}...`);
+      console.log(` metadata: ${JSON.stringify(doc.metadata)}`);
+      console.log(`   Title: ${doc.metadata.title || 'N/A'}`);
+      console.log(`   Artist: ${doc.metadata.artist || 'N/A'}`);
+      console.log(
+        `   Text: ${
+          doc.metadata.text
+            ? doc.metadata.text.substring(0, 200) +
+              (doc.metadata.text.length > 200 ? '...' : '')
+            : 'N/A'
+        }`
+      );
+      console.log(
+        `   Accession Number: ${doc.metadata.accession_number || 'N/A'}`
+      );
+      console.log(`   Source: ${doc.metadata.source || 'N/A'}`);
       console.log();
     });
 
     // Test search with filters
     console.log('=== Filtered Search Test ===');
     const filteredResults = await searcher.searchWithFilters(
-      'landscape painting',
-      { medium: 'Oil on canvas' },
-      3
+      FILTERED_SEARCH_QUERY,
+      FILTERED_SEARCH_FILTERS,
+      TOP_K
     );
     filteredResults.forEach((doc, index) => {
       console.log(`${index + 1}. Score: ${doc.score.toFixed(3)}`);
-      console.log(`   Title: ${doc.title}`);
-      console.log(`   Artist: ${doc.artist}`);
-      console.log(`   Medium: ${doc.medium}`);
+      console.log(`   Title: ${doc.metadata.title || 'N/A'}`);
+      console.log(`   Artist: ${doc.metadata.artist || 'N/A'}`);
+      console.log(
+        `   Text: ${
+          doc.metadata.text
+            ? doc.metadata.text.substring(0, 200) +
+              (doc.metadata.text.length > 200 ? '...' : '')
+            : 'N/A'
+        }`
+      );
+      console.log(
+        `   Accession Number: ${doc.metadata.accession_number || 'N/A'}`
+      );
+      console.log(`   Source: ${doc.metadata.source || 'N/A'}`);
       console.log();
     });
   } catch (error) {

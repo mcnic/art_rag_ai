@@ -8,10 +8,13 @@
     "process": "node scripts/load_and_process.js",
     "save-chunks": "node -e \"require('./scripts/load_and_process').loadAndProcessDocuments().then(chunks => require('fs').writeFileSync('chunks.json', JSON.stringify(chunks, null, 2)))\"",
     "embed": "node scripts/embed_and_store.js embed",
+    "embed-100": "node scripts/embed_and_store.js embed 100",
+    "embed-1000": "node scripts/embed_and_store.js embed 1000",
     "search": "node scripts/embed_and_store.js search",
     "test-pinecone": "node scripts/test_pinecone.js",
     "test-openai": "node scripts/test_openai.js",
-    "test-ollama": "node scripts/test_ollama.js"
+    "test-ollama": "node scripts/test_ollama.js",
+    "search-test": "node scripts/search_documents.js"
   },
   "author": "mcnic",
   "license": "ISC",

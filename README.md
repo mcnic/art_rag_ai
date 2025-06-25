@@ -228,7 +228,11 @@ This command:
 ### 2. Create embeddings and load to Pinecone
 
 ```bash
+# Upload all embeddings
 npm run embed
+
+# Upload only the first 1000 embeddings (for testing)
+node scripts/embed_and_store.js embed 1000
 ```
 
 This command:
@@ -236,6 +240,7 @@ This command:
 - Loads chunks from `chunks.json` file
 - Gets embeddings via Ollama API (nomic-embed-text model)
 - Loads embeddings to Pinecone in batches of 100
+- **If you specify a limit (e.g., 1000), only that many embeddings will be uploaded.**
 
 ### 3. Search the collection
 
@@ -274,7 +279,8 @@ art_rag_ai/
 | `npm run download-collection` | Download collection |
 | `npm run process` | Process documents (console output) |
 | `npm run save-chunks` | Process and save chunks to file |
-| `npm run embed` | Create embeddings and load to Pinecone |
+| `npm run embed` | Create embeddings and load to Pinecone (all) |
+| `node scripts/embed_and_store.js embed 1000` | Create and upload only 1000 embeddings (for testing) |
 | `npm run search` | Search the collection |
 | `npm run test-ollama` | Test Ollama connection |
 | `npm run test-pinecone` | Test Pinecone connection |

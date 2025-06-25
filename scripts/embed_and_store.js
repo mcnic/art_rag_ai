@@ -61,17 +61,37 @@ async function loadChunks() {
   return JSON.parse(data);
 }
 
-async function embedAndStore() {
+async function clearPineconeIndex(index) {
+  console.log('Clearing Pinecone index before uploading new embeddings...');
+  await index.delete({ deleteAll: true });
+  console.log('Index cleared.');
+}
+
+// NOTE: Pinecone JS client does not support clearing all vectors in an index directly.
+// To start fresh, create a new (empty) index in Pinecone UI before running this script.
+
+async function embedAndStore(limit = null) {
+  console.log(
+    'NOTE: To start with a clean index, create a new (empty) index in Pinecone UI before running this script.'
+  );
   const chunks = await loadChunks();
   const pinecone = new Pinecone({
     apiKey: PINECONE_API_KEY,
   });
   const index = pinecone.Index(PINECONE_INDEX);
 
+  // Optionally limit the number of chunks for testing
+  const chunksToUpload = limit ? chunks.slice(0, limit) : chunks;
+  console.log(
+    `Uploading ${chunksToUpload.length} chunks${
+      limit ? ` (limit: ${limit})` : ''
+    }...`
+  );
+
   // Batch upserts (Pinecone recommends up to 100 at a time)
   const batchSize = 100;
-  for (let i = 0; i < chunks.length; i += batchSize) {
-    const batch = chunks.slice(i, i + batchSize);
+  for (let i = 0; i < chunksToUpload.length; i += batchSize) {
+    const batch = chunksToUpload.slice(i, i + batchSize);
     const texts = batch.map((doc) => doc.pageContent);
     const embeddings = await getEmbeddings(texts);
     const vectors = batch.map((doc, idx) => ({
@@ -80,7 +100,7 @@ async function embedAndStore() {
       metadata: cleanMetadata(doc.metadata),
     }));
     await index.upsert(vectors);
-    console.log(`Upserted ${i + batch.length} / ${chunks.length}`);
+    console.log(`Upserted ${i + batch.length} / ${chunksToUpload.length}`);
   }
   console.log('All embeddings stored in Pinecone!');
 }
@@ -99,19 +119,25 @@ async function searchPinecone(query, topK = 5) {
   return results.matches;
 }
 
-// For running: node embed_and_store.js embed
+// For running: node embed_and_store.js embed [limit]
 // or search: node embed_and_store.js search "your query"
 if (require.main === module) {
   const [, , cmd, ...args] = process.argv;
   if (cmd === 'embed') {
-    embedAndStore();
+    const limit = args[0] ? parseInt(args[0], 10) : null;
+    embedAndStore(limit);
   } else if (cmd === 'search') {
     const query = args.join(' ');
     searchPinecone(query).then((res) => {
       console.log('Search results:', res);
     });
   } else {
-    console.log('Usage: node embed_and_store.js [embed|search "query"]');
+    console.log(
+      'Usage: node embed_and_store.js [embed [limit]|search "query"]'
+    );
+    console.log(
+      'Example for limited upload: node embed_and_store.js embed 1000'
+    );
   }
 }
 

@@ -7,6 +7,17 @@ const { Document } = require('langchain/document');
 async function loadAndProcessDocuments() {
   console.log('Starting document loading and processing...');
 
+  // Remove old chunks.json if it exists
+  const chunksPath = path.join(__dirname, '..', 'chunks.json');
+  try {
+    await fs.unlink(chunksPath);
+    console.log('Old chunks.json removed.');
+  } catch (err) {
+    if (err.code !== 'ENOENT') {
+      console.error('Error removing old chunks.json:', err);
+    }
+  }
+
   const files = await new Promise((resolve, reject) => {
     glob('collection/objects/**/*.json', (err, files) => {
       if (err) {
@@ -26,11 +37,20 @@ async function loadAndProcessDocuments() {
         const json = JSON.parse(data);
 
         // Extract relevant text fields
+        let mainText = json.text || json.description || '';
+        if (!mainText) {
+          const parts = [];
+          if (json.title) parts.push(`Title: ${json.title}`);
+          if (json.artist) parts.push(`Artist: ${json.artist}`);
+          if (json.accession_number)
+            parts.push(`Accession: ${json.accession_number}`);
+          if (file) parts.push(`Source: ${file}`);
+          mainText = parts.join(', ');
+        }
         const textContent = [
           json.title,
-          json.description,
-          json.text,
           json.artist,
+          mainText,
           json.culture,
           json.department,
         ]
@@ -45,6 +65,9 @@ async function loadAndProcessDocuments() {
                 source: file,
                 id: json.id,
                 accession_number: json.accession_number,
+                title: json.title,
+                artist: json.artist,
+                text: mainText,
               },
             })
           );
