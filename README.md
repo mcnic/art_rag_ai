@@ -168,7 +168,19 @@ Create a `.env` file in the project root:
 ```env
 PINECONE_API_KEY=your_pinecone_api_key
 PINECONE_INDEX=your_pinecone_index_name
+OLLAMA_MODEL=gemma2:2b
 ```
+
+**Available variables:**
+- `PINECONE_API_KEY` - Your Pinecone API key
+- `PINECONE_INDEX` - Your Pinecone index name
+- `OLLAMA_MODEL` - Ollama model for text generation (default: gemma2:2b)
+
+**Available models for OLLAMA_MODEL:**
+- `gemma2:2b` - Small, fast model (recommended)
+- `llama3` - Larger, more capable model
+- `phi3:mini` - Very small, fast model
+- `mistral` - Good balance of speed and quality
 
 ## Pinecone Setup
 
